@@ -1,51 +1,28 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 import { EvalService } from './eval.service';
-import { response } from 'express';
 
-@Controller('eval')
+@Controller()
 export class EvalController {
   constructor(private readonly evalService: EvalService) {}
 
-  @Get()
-  getEval() {
-    return 'Eval Controller';
-  }
-
-  @Post()
-  async chat(@Body('message') message: string) {
-    const messages = [{ role: 'user' as const, content: message }];
-    const response = await this.evalService.chat(messages);
-
-    return response;
-  }
-
-  @Post('with-rubric')
-  async evalWithRubric(
-    @Body()
-    body: {
-      data: Record<string, any>;
-      chatHistory: { role: 'user' | 'assistant' | 'system'; content: string }[];
-      agentAnswer: string;
-    },
-  ): Promise<string> {
+  @GrpcMethod('EvalService', 'EvalWithRubric')
+  async evalWithRubric(body: {
+    data: Record<string, string>;
+    chatHistory: { role: 'user' | 'assistant' | 'system'; content: string }[];
+    agentAnswer: string;
+  }): Promise<{ metrices: { metric: string; score: number; reason: string }[] }> {
     const { data, chatHistory, agentAnswer } = body;
     return await this.evalService.evalWithRubric(data, chatHistory, agentAnswer);
   }
 
-  @Post('with-ideal')
-  async evalWithIdeal(
-    @Body()
-    body: {
-      chatHistory: { role: 'user' | 'assistant' | 'system'; content: string }[];
-      agentAnswer: string;
-      idealAnswer: string;
-    },
-  ): Promise<string> {
+  @GrpcMethod('EvalService', 'EvalWithIdeal')
+  async evalWithIdeal(body: {
+    chatHistory: { role: 'user' | 'assistant' | 'system'; content: string }[];
+    agentAnswer: string;
+    idealAnswer: string;
+  }): Promise<{ cases: { caseName: string; score: number; reason: string }[] }> {
     const { chatHistory, agentAnswer, idealAnswer } = body;
-    return await this.evalService.evalWithIdeal(
-      chatHistory,
-      agentAnswer,
-      idealAnswer,
-    );
+    return await this.evalService.evalWithIdeal(chatHistory, agentAnswer, idealAnswer);
   }
 }

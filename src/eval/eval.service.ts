@@ -82,15 +82,15 @@ Submitted answer: {delimiter}{agentAnswer}{delimiter}
       return response?.message?.content?.[0]?.text ?? 'No response received';
     } catch (error) {
       console.error('Error occurred while calling Cohere API:', error);
-      return 'An error occurred while processing the request.' + error;
+      return 'An error occurred while processing the request: ' + error;
     }
   }
   
   async evalWithRubric(
-    data: Record<string, any>, // Accepting the data as an object
-    chatHistory: { role: 'user' | 'assistant' | 'system'; content: string }[], // Taking messages history
+    data: Record<string, string>, // Updated type for gRPC compatibility
+    chatHistory: { role: 'user' | 'assistant' | 'system'; content: string }[],
     agentAnswer: string
-  ): Promise<string> {
+  ): Promise<{ metrices: { metric: string; score: number; reason: string }[] }> {
     const delimiter = '####';
   
     // Prepare the user message by replacing placeholders
@@ -104,9 +104,8 @@ Submitted answer: {delimiter}{agentAnswer}{delimiter}
       { role: 'system' as const, content: this.systemMessage1 },
       { role: 'user' as const, content: userMessage },
     ];
-  
-    // Define the JSON schema for the response format
-    const response_format = {
+
+    const responseFormat = {
       type: 'json_object',
       schema: {
         type: 'object',
@@ -127,30 +126,30 @@ Submitted answer: {delimiter}{agentAnswer}{delimiter}
         required: ['metrices']
       }
     };
-  
+
     try {
-      // Use the injected chat service to send the messages with response format
-      const response = await this.chat(messages, undefined, 0, 4096, response_format);
-      return response;
+      const response = await this.chat(messages, undefined, 0, 4096, responseFormat);
+      console.log('Raw response:', response); // Debugging log
+      const parsedResponse = JSON.parse(response);
+
+      return parsedResponse
     } catch (error) {
-      console.error('Error occurred while processing evaluation:', error);
-      return 'Error occurred during evaluation';
+      console.error('Error occurred during rubric evaluation:', error);
+      return { metrices: [] };
     }
   }
 
-  
-  // Second evaluation method
-async evalWithIdeal(
-  messagesHistory: { role: 'user' | 'assistant' | 'system'; content: string }[], // Taking messages history
-  agentAnswer: string,
-  idealAnswer: string,
-): Promise<string> {
-  const delimiter = '####';
+  async evalWithIdeal(
+    chatHistory: { role: 'user' | 'assistant' | 'system'; content: string }[],
+    agentAnswer: string,
+    idealAnswer: string,
+  ): Promise<{ cases: { caseName: string; score: number; reason: string }[] }> {
+    const delimiter = '####';
 
   // Prepare the user message by replacing placeholders
   const userMessage = this.evaluationMessageTemplate2
     .replace(/{delimiter}/g, delimiter)
-    .replace(/{messagesHistory}/g, JSON.stringify(messagesHistory)) // Use messages history instead of question
+    .replace(/{messagesHistory}/g, JSON.stringify(chatHistory)) // Use messages history instead of question
     .replace(/{idealAnswer}/g, idealAnswer)
     .replace(/{agentAnswer}/g, agentAnswer);
 
@@ -182,8 +181,12 @@ async evalWithIdeal(
     }
   };
 
-  // Use the injected chat service to send the messages with response format
-  return await this.chat(messages, undefined, undefined, undefined, responseFormat);
-}
-
+    try {
+      const response = await this.chat(messages, undefined, 0, 4096, responseFormat);
+      return JSON.parse(response);
+    } catch (error) {
+      console.error('Error occurred during ideal evaluation:', error);
+      return { cases: [] };
+    }
+  }
 }

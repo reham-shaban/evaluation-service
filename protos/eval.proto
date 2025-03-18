@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package eval;
+
+service EvalService {
+  rpc EvalWithRubric(EvalWithRubricRequest) returns (EvalWithRubricResponse);
+  rpc EvalWithIdeal(EvalWithIdealRequest) returns (EvalWithIdealResponse);
+}
+
+message EvalWithRubricRequest {
+  map<string, string> data = 1;
+  repeated ChatMessage chatHistory = 2;
+  string agentAnswer = 3;
+}
+
+message EvalWithIdealRequest {
+  repeated ChatMessage chatHistory = 1;
+  string agentAnswer = 2;
+  string idealAnswer = 3;
+}
+
+message EvalWithRubricResponse {
+  repeated RubricMetric metrices = 1;
+}
+
+message EvalWithIdealResponse {
+  repeated IdealCase cases = 1;
+}
+
+message ChatMessage {
+  string role = 1; // "user", "assistant", or "system"
+  string content = 2;
+}
+
+message RubricMetric {
+  string metric = 1;
+  int32 score = 2;
+  string reason = 3;
+}
+
+message IdealCase {
+  string caseName = 1;
+  int32 score = 2;
+  string reason = 3;
+}
