@@ -11,14 +11,14 @@ async function bootstrap() {
     transport: Transport.GRPC,
     options: {
       package: 'eval',
-      protoPath: join(__dirname, '..', 'protos', 'eval.proto'), 
-      url: 'localhost:50051', 
+      protoPath: join(__dirname, '..', 'protos', 'eval.proto'),
+      url: 'localhost:50051',
     },
   });
 
-  // Start all microservices 
+  // Start all microservices
   await app.startAllMicroservices();
-  
+
   // Start the HTTP server
   // await app.listen(3000);
 }

@@ -39,7 +39,7 @@ message RubricMetric {
 }
 
 message IdealCase {
-  string caseName = 1;
+  string case = 1;
   int32 score = 2;
   string reason = 3;
 }
